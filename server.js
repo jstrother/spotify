@@ -1,6 +1,6 @@
-var unirest = require('unirest');
-var express = require('express');
-var events = require('events');
+const unirest = require('unirest');
+const express = require('express');
+const events = require('events');
 
 var getFromApi = function(endpoint, args) {
 	var emitter = new events.EventEmitter();
@@ -27,6 +27,21 @@ var getRelatedFromApi = function(id) {
 				 });
 	return emitterRel;
 };
+var getTopTracksFromApi = function(artist) {
+	var emitterTrack = new events.EventEmitter();
+	console.log('artist:', artist);
+	var id = artist.id;
+	console.log('id:', id);
+	unirest.get('https://api.spotify.com/v1/artists/' + id + '/top-tracks')
+				 .end(function(response) {
+				 		if (response.ok) {
+				 			emitterTrack.emit('end', response.body);
+				 		} else {
+				 			emitterTrack.emit('error', response.body);
+				 		}
+				 });
+	return emitterTrack;
+};
 
 var app = express();
 app.use(express.static('public'));
@@ -40,15 +55,30 @@ app.get('/search/:name', function(req, res) {
 	searchReq.on('end', function(item) {
 		var artist = item.artists.items[0];
 		var id = item.artists.items[0].id;
+
 		var searchRel = getRelatedFromApi(id);
 		searchRel.on('end', function(item) {
-			artist.related = item.artists.slice(0, 5);
+			artist.related = item.artists;
 			res.json(artist);
+
+			artist.related.forEach(function() {
+				var searchTrack = getTopTracksFromApi(artist.related);
+				searchTrack.on('end', function(item) {
+					artist.tracks = item.tracks;
+					console.log(artist.tracks);
+					res.json(tracks);
+				});
+				searchTrack.on('error', function(code) {
+					res.sendStatus(code);
+				});
+			});
 		});
+
 		searchRel.on('error', function(code) {
 			res.sendStatus(code);
 		});
 	});
+	
 	searchReq.on('error', function(code) {
 		res.sendStatus(code);
 	});
