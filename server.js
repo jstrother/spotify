@@ -27,12 +27,13 @@ var getRelatedFromApi = function(id) {
 				 });
 	return emitterRel;
 };
-var getTopTracksFromApi = function(artist) {
+var getTopTracksFromApi = function(artist, args) {
 	var emitterTrack = new events.EventEmitter();
 	console.log('artist:', artist);
 	var id = artist.id;
 	console.log('id:', id);
 	unirest.get('https://api.spotify.com/v1/artists/' + id + '/top-tracks')
+				 .qs(args)
 				 .end(function(response) {
 				 		if (response.ok) {
 				 			emitterTrack.emit('end', response.body);
@@ -43,7 +44,7 @@ var getTopTracksFromApi = function(artist) {
 	return emitterTrack;
 };
 
-var app = express();
+const app = express();
 app.use(express.static('public'));
 
 app.get('/search/:name', function(req, res) {
@@ -62,7 +63,9 @@ app.get('/search/:name', function(req, res) {
 			res.json(artist);
 
 			artist.related.forEach(function() {
-				var searchTrack = getTopTracksFromApi(artist.related);
+				var searchTrack = getTopTracksFromApi(artist.related, {
+					q: 'US'
+				});
 				searchTrack.on('end', function(item) {
 					artist.tracks = item.tracks;
 					console.log(artist.tracks);
