@@ -48,6 +48,7 @@ const app = express();
 app.use(express.static('public'));
 
 app.get('/search/:name', function(req, res) {
+	var complete = 0;
 	var searchReq = getFromApi('search', {
 		q: req.params.name,
 		limit: 1,
@@ -60,8 +61,12 @@ app.get('/search/:name', function(req, res) {
 		var searchRel = getRelatedFromApi(id);
 		searchRel.on('end', function(item) {
 			artist.related = item.artists;
-			res.json(artist);
-
+			var checkComplete = function() {
+				if (complete === artist.related.length) {
+					res.json(artist);
+				}
+			};
+			
 			artist.related.forEach(function(artist) {
 				var searchTrack = getTopTracksFromApi(artist, {
 					country: 'US'
@@ -69,7 +74,8 @@ app.get('/search/:name', function(req, res) {
 				searchTrack.on('end', function(item) {
 					artist.tracks = item.tracks;
 					console.log(artist.tracks);
-					res.json(artist);
+					complete += 1;
+					checkComplete();
 				});
 				searchTrack.on('error', function(code) {
 					res.sendStatus(code);
