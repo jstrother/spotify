@@ -62,14 +62,14 @@ app.get('/search/:name', function(req, res) {
 			artist.related = item.artists;
 			res.json(artist);
 
-			artist.related.forEach(function() {
-				var searchTrack = getTopTracksFromApi(artist.related, {
-					q: 'US'
+			artist.related.forEach(function(artist) {
+				var searchTrack = getTopTracksFromApi(artist, {
+					country: 'US'
 				});
 				searchTrack.on('end', function(item) {
 					artist.tracks = item.tracks;
 					console.log(artist.tracks);
-					res.json(tracks);
+					res.json(artist);
 				});
 				searchTrack.on('error', function(code) {
 					res.sendStatus(code);
